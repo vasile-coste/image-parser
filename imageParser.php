@@ -43,7 +43,7 @@ class ImageParser
     private function run()
     {
         echo "Parsing Main pages -------------- \n\n";
-        // $this->parseMain($this->url);
+        $this->parseMain($this->url);
         echo "Getting images links -------------- \n\n";
         $this->parseSecond();
     }
@@ -149,10 +149,10 @@ class ImageParser
             }
 
             // get portret images
-            preg_match('/<br.+<a\s*href=.(.+)["\']\s*>\s*<img\s*loading=/isU', $content, $match);
-            if (isset($match[1])) {
-                echo "Found portret image " . $match[1] . "\n";
-                $this->addImageUrlToDB($match[1], "portret");
+            preg_match('/<(br|p)[^>]*>\s*<a\s*href=.([^\'"]+)["\'][^>]*>\s*<img\s*loading/isU', $content, $match);
+            if (isset($match[2])) {
+                echo "Found portret image " . $match[2] . "\n";
+                $this->addImageUrlToDB($match[2], "portret");
             } else {
                 echo "Waring: Portret image not found. Please check regex \n";
                 $regexErrorPortret = true;
