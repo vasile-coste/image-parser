@@ -34,18 +34,21 @@ class ImageParser
     public function __construct()
     {
         $this->db = Connect::PDO();
-        $this->run();
     }
 
     /**
      * Build the logic call
      */
-    private function run()
+    public function run()
     {
         echo "Parsing Main pages -------------- \n\n";
         $this->parseMain($this->url);
+
         echo "Getting images links -------------- \n\n";
         $this->parseSecond();
+
+        echo "Download images from links -------------- \n\n";
+        $this->downloadImages();
     }
 
     /**
@@ -161,11 +164,11 @@ class ImageParser
             // set page as parsed
             $updateArray = [
                 "`parsed`=1"
-            ]; 
-            $updateArray[] = "`regex_error_landscape`=". ($regexErrorLandscape ? 1 : 0);
-            $updateArray[] = "`regex_error_portret`=". ($regexErrorPortret ? 1 : 0);
+            ];
+            $updateArray[] = "`regex_error_landscape`=" . ($regexErrorLandscape ? 1 : 0);
+            $updateArray[] = "`regex_error_portret`=" . ($regexErrorPortret ? 1 : 0);
 
-            $updateSql = "UPDATE `pages` SET ".implode(", ", $updateArray)." WHERE id=" . $data['id'];
+            $updateSql = "UPDATE `pages` SET " . implode(", ", $updateArray) . " WHERE id=" . $data['id'];
             echo "$updateSql \n\n";
             $this->db->query($updateSql);
 
@@ -212,35 +215,31 @@ class ImageParser
         }
     }
 
-    public function downloadWideImages()
+    /**
+     * Download images and save them in their respective folder
+     */
+    public function downloadImages()
     {
-        $wides = json_decode(file_get_contents('wide_image_links.js'));
-        $totalWides = count($wides);
+        $records = $this->db
+            ->query("SELECT * FROM `images` WHERE `parsed`=0")
+            ->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "Downloading " . $totalWides . " images\n";
+        $total_links = count($records);
+
+        echo "Downloading " . $total_links . " images\n";
         $cnt = 1;
-        foreach ($wides as $imgUrl) {
-            echo "$cnt / $totalWides -------------------------------\n";
-            echo "Saving image $imgUrl\n";
-            $imgArray = explode("/", $imgUrl);
-            file_put_contents('images/wide/' . end($imgArray), file_get_contents($imgUrl));
-            $cnt++;
-        }
-        echo "\nDone\n";
-    }
+        foreach ($records as $record) {
+            echo "$cnt / $total_links -------------------------------\n";
+            echo "Saving image " . $record['type'] . " -> " . $record['link'] . "\n";
 
-    public function downloadPortretImages()
-    {
-        $portrets = json_decode(file_get_contents('protret_image_links.js'));
-        $totalPortrets = count($portrets);
+            $imageName = end(explode("/", $record['link']));
+            file_put_contents('images/' . $record['type'] . '/' . $imageName, file_get_contents($record['link']));
 
-        echo "Downloading " . $totalPortrets . " images\n";
-        $cnt = 1;
-        foreach ($portrets as $imgUrl) {
-            echo "$cnt / $totalPortrets -------------------------------\n";
-            echo "Saving image $imgUrl\n";
-            $imgArray = explode("/", $imgUrl);
-            file_put_contents('images/portret/' . end($imgArray), file_get_contents($imgUrl));
+            // set image as parsed
+            $updateSql = "UPDATE `images` SET `parsed`=1 WHERE id=" . $record['id'];
+            echo "$updateSql \n\n";
+            $this->db->query($updateSql);
+
             $cnt++;
         }
         echo "\nDone\n";
@@ -265,7 +264,4 @@ class ImageParser
     }
 }
 
-new ImageParser();
-// (new Scrapper())->parseSecond();
-// (new Scrapper())->downloadWideImages();
-// (new Scrapper())->downloadPortretImages();
+(new ImageParser())->run();
