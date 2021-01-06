@@ -19,16 +19,6 @@ class ImageParser
     private string $url = "https://windows10spotlight.com/";
 
     /**
-     * @var array
-     */
-    private array $imgWideLinks = [];
-
-    /**
-     * @var array
-     */
-    private array $imgPortretLinks = [];
-
-    /**
      * Making things simpliers by addin them in the construct function 
      */
     public function __construct()
